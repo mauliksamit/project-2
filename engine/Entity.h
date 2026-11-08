@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <limits>
+#include <string>
 #include <tuple>
 
 // An entity can have any component it is templated with,
@@ -11,14 +13,18 @@ namespace ECSEngine {
 
 using EntityID = size_t;
 
+// id of an empty slot (entity was removed)
+static constexpr EntityID kInvalidEntity = std::numeric_limits<EntityID>::max();
+
 class Entity {
 public:
     EntityID GetID() const { return mID; }
+    bool IsValid() const { return mID != kInvalidEntity; }
 
 private:
     Entity() = default;
     Entity(EntityID eid, const std::string& name) : mID(eid), mType(name) {}
-    EntityID mID;
+    EntityID mID = kInvalidEntity;
     std::string mType;
 
     template <typename... T>

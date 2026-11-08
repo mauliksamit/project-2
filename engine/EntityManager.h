@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 #include <type_traits>
+#include <vector>
 
 #include "Component.h"
 #include "Entity.h"
@@ -43,7 +44,16 @@ public:
         return dummy;
     }
 
+    // removed entities leave gaps, so check IsValid() when iterating
+    using tEntity = std::vector<Entity>;
+    using const_iterator = tEntity::const_iterator;
+    const_iterator cbegin() const { return mEntities.begin(); }
+    const_iterator cend() const { return mEntities.end(); }
+    const_iterator begin() { return mEntities.begin(); }
+    const_iterator end() { return mEntities.end(); }
+
 private:
+    tEntity mEntities;
 };
 
 }  // namespace ECSEngine

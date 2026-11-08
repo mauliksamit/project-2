@@ -8,6 +8,7 @@
 # Linker output
 *.ilk
 *.map
+!assets/*.map
 *.exp
 
 # Precompiled Headers

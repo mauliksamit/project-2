@@ -9,6 +9,8 @@
 
 namespace ECSEngine {
 
+// on* flags are reset and set in CollisionSystem, so InputSystem and GravitySystem
+// see last frame's flags
 struct CollisionComponent {
     uint8_t staticEntity : 1;
     uint8_t doesDamage : 1;
@@ -16,7 +18,7 @@ struct CollisionComponent {
     uint8_t onCeiling : 1;
     uint8_t onLeftWall : 1;
     uint8_t onRightWall : 1;
-    Rect collisionBox;          // The bounding box for collision detection
+    Rect collisionBox;          // relative to entity location
     Rect previousCollisionBox;  // The previous bounding box for collision detection
 };
 

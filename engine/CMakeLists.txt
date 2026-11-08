@@ -23,6 +23,7 @@ endif()
 
 set(ECS_ENGINE_FILES
     ECSEngine.h
+    Constants.h
     Entity.h
     MathUtil.h
     Keyboard.h
@@ -31,9 +32,14 @@ set(ECS_ENGINE_FILES
 set(ECS_COMPONENT_FILES
     Component.h
     CameraComponent.h
+    CameraFollowerComponent.h
+    CameraShakeComponent.h
     CollisionComponent.h
+    GravityComponent.h
     InputComponent.h
     LocationComponent.h
+    MovementComponent.h
+    RespawnComponent.h
     ScoreComponent.h
     SpawnComponent.h
     SpriteComponent.h
