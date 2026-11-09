@@ -1,11 +1,9 @@
 #pragma once
 
 #include <cassert>
-#include <iostream>
 #include <limits>
 #include <string>
 #include <tuple>
-#include <type_traits>
 #include <vector>
 
 #include "Component.h"
@@ -49,9 +47,13 @@ public:
     }
 
     // stores a copy, replaces the old one if the entity already has this component
+    // does nothing if the entity doesn't exist
     template <typename T>
     void AddComponent(EntityID entity, T component) {
-        assert(EntityExists(entity));
+        if (!EntityExists(entity)) {
+            return;
+        }
+
         ComponentStorage<T>& storage = GetComponentStorage<T>();
 
         if (HasComponent<T>(entity)) {
@@ -141,7 +143,8 @@ private:
 
     tEntity mEntities;
     std::vector<EntityID> mFreeEntityIDs;  // ids of removed entities
-    std::tuple<ComponentStorage<Components>...> mComponentStorages;  // one per component type
+    // one per component type
+    std::tuple<ComponentStorage<Components>...> mComponentStorages;
 };
 
 }  // namespace ECSEngine
