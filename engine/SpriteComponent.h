@@ -17,6 +17,7 @@ public:
     SpriteID textureID;
     Rect bounds;
     bool worldSpace;  // If false, this sprite is drawn in screen space instead of world space
+    uint8_t layer;    // draw order: 0 = background, 1 = world, 2 = HUD
 private:
 };
 

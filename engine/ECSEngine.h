@@ -3,11 +3,17 @@
 #include <vector>
 
 #include "CameraComponent.h"
+#include "CameraFollowerComponent.h"
+#include "CameraShakeComponent.h"
 #include "CollisionComponent.h"
+#include "Constants.h"
 #include "EntityManager.h"
+#include "GravityComponent.h"
 #include "InputComponent.h"
 #include "LocationComponent.h"
 #include "MathUtil.h"
+#include "MovementComponent.h"
+#include "RespawnComponent.h"
 #include "ScoreComponent.h"
 #include "SoundManager.h"
 #include "SpawnComponent.h"

@@ -24,8 +24,9 @@ std::string gResourcePath = "../assets/";
 #define COMPONENTS                                                                             \
     ECSEngine::LocationComponent, ECSEngine::MovementComponent, ECSEngine::CollisionComponent, \
         ECSEngine::SpriteComponent, ECSEngine::SpawnComponent, ECSEngine::CameraComponent,     \
-        ECSEngine::CameraFollower, ECSEngine::InputComponent, ECSEngine::GravityComponent,     \
-        ECSEngine::CameraShake, ECSEngine::ScoreComponent, ECSEngine::RespawnComponent
+        ECSEngine::CameraFollowerComponent, ECSEngine::InputComponent,                         \
+        ECSEngine::GravityComponent,                                                           \
+        ECSEngine::CameraShakeComponent, ECSEngine::ScoreComponent, ECSEngine::RespawnComponent
 using Engine = ECSEngine::ECSEngine<COMPONENTS>;
 
 void LoadMap(Engine& engine, const std::string& path, const std::string& file) {}
