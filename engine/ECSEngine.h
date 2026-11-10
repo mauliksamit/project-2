@@ -72,13 +72,13 @@ private:
     WindowManager mWindowManager;
 
     // For debugging - pause and step the engine
-    bool running, step, debug;
+    bool mRunning, mStep, mDebug;
 };
 
 template <typename... Components>
 ECSEngine<Components...>::ECSEngine(unsigned int width, unsigned int height,
                                     const std::string& name)
-    : mWindowManager(width, height, name), running(true), step(false), debug(false) {
+    : mWindowManager(width, height, name), mRunning(true), mStep(false), mDebug(false) {
     std::shared_ptr<sf::RenderWindow> window = mWindowManager.GetWindow();
     window->setFramerateLimit(kFramesPerSecond);
     window->setKeyRepeatEnabled(false);
@@ -90,18 +90,18 @@ ECSEngine<Components...>::~ECSEngine() {}
 template <typename... Components>
 void ECSEngine<Components...>::Run() {
     while (ProcessEvents()) {
-        if (!running && !step) {
+        if (!mRunning && !mStep) {
             // display() does the frame limit but it doesn't run while paused
             sf::sleep(sf::seconds(1.0f / kFramesPerSecond));
             continue;
         }
-        step = false;
+        mStep = false;
 
         if (!mSystemManager.Run(this)) {
             return;
         }
 
-        if (debug) {
+        if (mDebug) {
             DebugDraw();
         }
         mWindowManager.Display();
@@ -150,13 +150,13 @@ bool ECSEngine<Components...>::ProcessEvents() {
 template <typename... Components>
 void ECSEngine<Components...>::HandleDebugKey(sf::Keyboard::Scancode scancode) {
     if (scancode == sf::Keyboard::Scancode::F1) {
-        debug = !debug;
+        mDebug = !mDebug;
     }
     if (scancode == sf::Keyboard::Scancode::F2) {
-        running = !running;
+        mRunning = !mRunning;
     }
     if (scancode == sf::Keyboard::Scancode::F3) {
-        step = true;
+        mStep = true;
     }
 }
 
