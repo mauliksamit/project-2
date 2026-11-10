@@ -62,6 +62,7 @@ private:
     bool ProcessEvents();  // false when the window gets closed
     void HandleDebugKey(sf::Keyboard::Scancode scancode);
     void SetKeyDown(sf::Keyboard::Scancode scancode, bool isDown);
+    void ReleaseAllKeys();
     void DebugDraw();
 
     EntityManager<Components...> mEntityManager;
@@ -96,13 +97,14 @@ void ECSEngine<Components...>::Run() {
         }
         step = false;
 
-        if (debug) {
-            DebugDraw();
-        }
-
         if (!mSystemManager.Run(this)) {
             return;
         }
+
+        if (debug) {
+            DebugDraw();
+        }
+        mWindowManager.Display();
     }
 }
 
@@ -135,6 +137,11 @@ bool ECSEngine<Components...>::ProcessEvents() {
         const sf::Event::KeyReleased* released = event->getIf<sf::Event::KeyReleased>();
         if (released != nullptr) {
             SetKeyDown(released->scancode, false);
+        }
+
+        // key releases off the window never show up, so the player would keep moving
+        if (event->is<sf::Event::FocusLost>()) {
+            ReleaseAllKeys();
         }
     }
     return true;
@@ -170,7 +177,17 @@ void ECSEngine<Components...>::SetKeyDown(sf::Keyboard::Scancode scancode, bool 
     }
 }
 
-// runs before the systems, so the boxes are one frame behind
+template <typename... Components>
+void ECSEngine<Components...>::ReleaseAllKeys() {
+    ComponentStorage<InputComponent>& inputStorage =
+        mEntityManager.template GetComponentStorage<InputComponent>();
+    for (size_t slot = 0; slot < inputStorage.mStorage.size(); slot++) {
+        if (inputStorage.mValid[slot]) {
+            inputStorage.mStorage[slot].keydown.reset();
+        }
+    }
+}
+
 template <typename... Components>
 void ECSEngine<Components...>::DebugDraw() {
     ComponentStorage<CollisionComponent>& collisionStorage =

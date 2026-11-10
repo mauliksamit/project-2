@@ -41,8 +41,8 @@ public:
     void DebugDrawRect(const Rect& r, int red, int green, int blue, int alpha = 255);
     void DebugFrameRect(const Rect& r, int red, int green, int blue, int alpha = 255);
 
-    // not in the sample API, SpriteSystem calls this instead of window display()
-    // so the debug rects draw on top of the sprites
+    // added to the WindowManager API so the engine can draw the debug rects
+    // on top of the sprites. engine calls it after the systems, systems shouldn't call display()
     void Display();
 
 private:
