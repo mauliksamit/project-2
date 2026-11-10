@@ -14,7 +14,7 @@ namespace ECSEngine {
 using EntityID = size_t;
 
 // id of an empty slot (entity was removed)
-static constexpr EntityID kInvalidEntity = std::numeric_limits<EntityID>::max();
+inline constexpr EntityID kInvalidEntity = std::numeric_limits<EntityID>::max();
 
 class Entity {
 public:
