@@ -55,7 +55,8 @@ public:
 
             float multiplier = 1;
             float maxFallVelocity = kMaxFallVelocity;
-            if (falling) {
+            // only the player falls faster than it goes up, stars bounce evenly
+            if (falling && entityManager.template HasComponent<InputComponent>(owner)) {
                 multiplier = kFallMultiplier;
                 if (IsKeyDown(entityManager, owner, Key::Down)) {
                     multiplier = kFastFallMultiplier;
