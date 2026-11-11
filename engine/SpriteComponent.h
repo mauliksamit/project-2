@@ -12,9 +12,10 @@ inline constexpr uint8_t kLayerBackground = 0;  // sky.map tiles
 inline constexpr uint8_t kLayerWorld = 1;       // world.map tiles, player, stars
 inline constexpr uint8_t kLayerHUD = 2;         // score digits
 
-// worldSpace == true:  bounds are world units relative to LocationComponent::loc
-//                      (needs a LocationComponent).
-// worldSpace == false: bounds are window pixels, the camera does not move it (HUD).
+// bounds are relative to LocationComponent::loc. Every sprite needs a LocationComponent,
+// HUD sprites included, or SpriteSystem skips it.
+// worldSpace == true:  loc + bounds is in world units and moves with the camera.
+// worldSpace == false: loc + bounds is in window pixels, the camera doesn't move it (HUD).
 struct SpriteComponent {
     SpriteID textureID = 0;
     Rect bounds;

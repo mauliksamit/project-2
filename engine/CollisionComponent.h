@@ -28,7 +28,7 @@ struct CollisionComponent {
     static CollisionComponent Static(const Rect& box, bool damages = false) {
         CollisionComponent c;
         c.staticEntity = 1;
-        c.doesDamage = damages ? 1 : 0;
+        c.doesDamage = damages;
         c.collisionBox = box;
         return c;
     }
@@ -37,7 +37,7 @@ struct CollisionComponent {
     static CollisionComponent Dynamic(const Rect& box, float restitution = 0.0f,
                                       bool collectable = false) {
         CollisionComponent c;
-        c.collectable = collectable ? 1 : 0;
+        c.collectable = collectable;
         c.restitution = restitution;
         c.collisionBox = box;
         return c;
