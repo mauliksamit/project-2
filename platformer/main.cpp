@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     sounds.RegisterSound(gResourcePath + "sfx_gem.ogg", ECSEngine::kSoundStar);
     sounds.RegisterSound(gResourcePath + "footstep_snow_001.ogg", ECSEngine::kSoundWallSlide);
 
-    // Load maps (sky first so it is created on the background layer)
+    // Load maps (the layer comes from the dictionary type: "dictionary 1" = background)
     ECSEngine::SpriteID starSprite = sprites.RegisterTexture(gResourcePath + kTileSheet, kStarSource);
     if (!LoadMap(engine, gResourcePath, "sky.map", starSprite) ||
         !LoadMap(engine, gResourcePath, "world.map", starSprite)) {
@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
     ECSEngine::EntityID camera = em.CreateEntity("camera");
     ECSEngine::CameraComponent cam;
     cam.position = ECSEngine::Point2D(13 * kTile, 7 * kTile);
-    cam.worldUnitsPerPixel = 1.0f;
+    cam.worldUnitsPerPixel = 14 * kTile / h;  // whole map height (14 rows) fits, spike floor visible
     cam.hardExclusion = ECSEngine::Rect(0.1f * w, 0.0f, 0.8f * w, h);  // never in outer 10%
     cam.softExclusion = ECSEngine::Rect(0.3f * w, 0.0f, 0.4f * w, h);  // settle in centre 40%
     cam.speed = 0.08f;
