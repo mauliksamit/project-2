@@ -245,23 +245,38 @@ private:
             return;
         }
 
-        // two stars: push apart on the shallower axis and swap that velocity component
+        // two stars: push apart on the shallower axis and swap that velocity component.
+        // A star already touching a tile on the side it would be pushed towards stays put and
+        // the other one moves the whole way, so a star resting on the floor isn't pushed into it.
         Point2D overlap = Overlap(boxA, boxB);
         Point2D& velA = em.template GetComponent<MovementComponent>(a).velocity;
         Point2D& velB = em.template GetComponent<MovementComponent>(b).velocity;
         Point2D& locA = em.template GetComponent<LocationComponent>(a).loc;
         Point2D& locB = em.template GetComponent<LocationComponent>(b).loc;
         if (overlap.x < overlap.y) {
-            float push = overlap.x / 2 * (boxA.Center().x < boxB.Center().x ? -1.0f : 1.0f);
-            locA.x += push;
-            locB.x -= push;
+            const float dirA = boxA.Center().x < boxB.Center().x ? -1.0f : 1.0f;  // A moves this way
+            const bool aBlocked = dirA < 0 ? ca.onLeftWall : ca.onRightWall;
+            const bool bBlocked = dirA < 0 ? cb.onRightWall : cb.onLeftWall;
+            Point2D split = SplitPush(overlap.x, aBlocked, bBlocked);
+            locA.x += dirA * split.x;
+            locB.x -= dirA * split.y;
             std::swap(velA.x, velB.x);
         } else {
-            float push = overlap.y / 2 * (boxA.Center().y < boxB.Center().y ? -1.0f : 1.0f);
-            locA.y += push;
-            locB.y -= push;
+            const float dirA = boxA.Center().y < boxB.Center().y ? -1.0f : 1.0f;
+            const bool aBlocked = dirA < 0 ? ca.onCeiling : ca.onGround;
+            const bool bBlocked = dirA < 0 ? cb.onGround : cb.onCeiling;
+            Point2D split = SplitPush(overlap.y, aBlocked, bBlocked);
+            locA.y += dirA * split.x;
+            locB.y -= dirA * split.y;
             std::swap(velA.y, velB.y);
         }
+    }
+
+    // How far A (x) and B (y) move to separate by `overlap`, given which side is blocked by a tile.
+    static Point2D SplitPush(float overlap, bool aBlocked, bool bBlocked) {
+        if (aBlocked && !bBlocked) return Point2D(0.0f, overlap);
+        if (bBlocked && !aBlocked) return Point2D(overlap, 0.0f);
+        return Point2D(overlap / 2, overlap / 2);
     }
 
     void Collect(EngineView<Components...>* engine, EntityID item) {

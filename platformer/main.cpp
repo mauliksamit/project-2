@@ -1,35 +1,38 @@
-#include <fstream>
+#include <array>
+#include <iostream>
 
 #include "CameraSystem.h"
-#include "CollisionComponent.h"
 #include "CollisionLateSystem.h"
 #include "CollisionSystem.h"
-#include "ECSEngine.h"
-#include "EntityManager.h"
+#include "Game.h"
+#include "GameObjects.h"
 #include "GravitySystem.h"
-#include "InputComponent.h"
 #include "InputSystem.h"
-#include "LocationComponent.h"
-#include "MathUtil.h"
+#include "MapLoader.h"
 #include "MovementSystem.h"
-#include "ScoreComponent.h"
 #include "ScoreSystem.h"
-#include "SpawnComponent.h"
 #include "SpawnSystem.h"
-#include "SpriteComponent.h"
-#include "SpriteManager.h"
 #include "SpriteSystem.h"
 
 std::string gResourcePath = "../assets/";
-#define COMPONENTS                                                                             \
-    ECSEngine::LocationComponent, ECSEngine::MovementComponent, ECSEngine::CollisionComponent, \
-        ECSEngine::SpriteComponent, ECSEngine::SpawnComponent, ECSEngine::CameraComponent,     \
-        ECSEngine::CameraFollowerComponent, ECSEngine::InputComponent,                         \
-        ECSEngine::GravityComponent,                                                           \
-        ECSEngine::CameraShakeComponent, ECSEngine::ScoreComponent, ECSEngine::RespawnComponent
-using Engine = ECSEngine::ECSEngine<COMPONENTS>;
 
-void LoadMap(Engine& engine, const std::string& path, const std::string& file) {}
+namespace {
+
+constexpr unsigned int kWindowWidth = 1024;
+constexpr unsigned int kWindowHeight = 768;
+constexpr float kTile = 64.0f;
+
+const char* kTileSheet = "spritesheet-tiles-default.png";
+const char* kCharacterSheet = "spritesheet-characters-default.png";
+const ECSEngine::Rect kStarSource(640, 320, 64, 64);
+const ECSEngine::Rect kPlayerSource(0, 0, 128, 128);
+
+// digits 0..9 are stacked in one column of the tile sheet, 0 at the bottom
+ECSEngine::Rect DigitSource(int digit) {
+    return ECSEngine::Rect(832.0f, 832.0f - 64.0f * static_cast<float>(digit), 64.0f, 64.0f);
+}
+
+}  // namespace
 
 int main(int argc, char* argv[]) {
     if (argc >= 3 && argv[1] == std::string("-path")) {
@@ -38,18 +41,55 @@ int main(int argc, char* argv[]) {
     std::cout << "Usage: " << argv[0] << " [-path resource_path]\n";
     std::cout << "Using resource path: " << gResourcePath << "\n";
 
-    // Engine test code
-    Engine engine(1024, 768, "Test Engine");
+    Engine engine(kWindowWidth, kWindowHeight, "Platformer");
+    auto& em = engine.GetEntityManager();
+    auto& sprites = engine.GetSpriteManager();
 
     // Load sounds
+    auto& sounds = engine.GetSoundManager();
+    sounds.RegisterSound(gResourcePath + "sfx_jump.ogg", ECSEngine::kSoundJump);
+    sounds.RegisterSound(gResourcePath + "footstep_grass_003.ogg", ECSEngine::kSoundLand);
+    sounds.RegisterSound(gResourcePath + "sfx_gem.ogg", ECSEngine::kSoundStar);
+    sounds.RegisterSound(gResourcePath + "footstep_snow_001.ogg", ECSEngine::kSoundWallSlide);
 
-    // Load maps
+    // Load maps (the layer comes from the dictionary type: "dictionary 1" = background)
+    ECSEngine::SpriteID starSprite = sprites.RegisterTexture(gResourcePath + kTileSheet, kStarSource);
+    if (!LoadMap(engine, gResourcePath, "sky.map", starSprite) ||
+        !LoadMap(engine, gResourcePath, "world.map", starSprite)) {
+        return 1;
+    }
 
-    // Place player
+    // Place player on the first floor (row 10 of world.map), inside the first walls
+    ECSEngine::SpriteID playerSprite =
+        sprites.RegisterTexture(gResourcePath + kCharacterSheet, kPlayerSource);
+    ECSEngine::EntityID player =
+        ECSEngine::CreatePlayer(&engine, ECSEngine::Point2D(13 * kTile, 9 * kTile), playerSprite);
 
-    // Setup score component
+    // The map has no star past the spike walls, so add one between columns 50 and 53
+    ECSEngine::CreateStar(&engine, ECSEngine::Point2D(51.5f * kTile, 10.0f * kTile),
+                          ECSEngine::Point2D(0.0f, 0.0f), starSprite);
 
-    // Setup Camera
+    // Setup score component (upper-left corner, screen space)
+    std::array<ECSEngine::SpriteID, 10> digitSprites{};
+    for (int d = 0; d < 10; ++d) {
+        digitSprites[static_cast<std::size_t>(d)] =
+            sprites.RegisterTexture(gResourcePath + kTileSheet, DigitSource(d));
+    }
+    ECSEngine::CreateScoreDisplay(&engine, digitSprites, ECSEngine::Point2D(16.0f, 16.0f));
+
+    // Setup Camera: fixed y, follows the player in x (CameraSystem uses the exclusion zones)
+    const float w = static_cast<float>(kWindowWidth);
+    const float h = static_cast<float>(kWindowHeight);
+    ECSEngine::EntityID camera = em.CreateEntity("camera");
+    ECSEngine::CameraComponent cam;
+    cam.position = ECSEngine::Point2D(13 * kTile, 7 * kTile);
+    cam.worldUnitsPerPixel = 14 * kTile / h;  // whole map height (14 rows) fits, spike floor visible
+    cam.hardExclusion = ECSEngine::Rect(0.1f * w, 0.0f, 0.8f * w, h);  // never in outer 10%
+    cam.softExclusion = ECSEngine::Rect(0.3f * w, 0.0f, 0.4f * w, h);  // settle in centre 40%
+    cam.speed = 0.08f;
+    em.AddComponent(camera, cam);
+    em.AddComponent(camera, ECSEngine::CameraFollowerComponent{player});
+    em.AddComponent(camera, ECSEngine::CameraShakeComponent{0, ECSEngine::Point2D(0.0f, 0.0f)});
 
     // Add all systems
     auto& sm = engine.GetSystemManager();
