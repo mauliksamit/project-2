@@ -110,8 +110,10 @@ EntityID CreateScoreDisplay(EngineView<Components...>* engine,
     score.digitTextureID = digitSprites;
     for (std::size_t i = 0; i < ScoreComponent::kNumDigits; ++i) {
         EntityID digit = em.CreateEntity("scoreDigit");
-        Rect bounds(screenPos.x + static_cast<float>(i) * kDigitSize, screenPos.y, kDigitSize,
-                    kDigitSize);
+        // SpriteSystem needs a location on every sprite, HUD included (bounds are relative to it)
+        Point2D digitPos(screenPos.x + static_cast<float>(i) * kDigitSize, screenPos.y);
+        em.AddComponent(digit, LocationComponent{digitPos});
+        Rect bounds(0.0f, 0.0f, kDigitSize, kDigitSize);
         em.AddComponent(digit, SpriteComponent{digitSprites[0], bounds, false, kLayerHUD});
         score.digitID[i] = digit;
     }

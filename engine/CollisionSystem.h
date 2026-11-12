@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "CameraComponent.h"
 #include "CameraShakeComponent.h"
 #include "CollisionComponent.h"
 #include "Constants.h"
@@ -275,13 +276,16 @@ private:
         }
     }
 
+    // Adds (or resets) a CameraShakeComponent on every camera, so main.cpp doesn't have to add
+    // one up front. Only touches the camera/shake storages, so collider references stay valid.
     void StartShake(EngineView<Components...>* engine, const Point2D& direction, float speed) {
-        auto& shakes = engine->GetEntityManager().template GetComponentStorage<CameraShakeComponent>();
+        auto& em = engine->GetEntityManager();
+        auto& cameras = em.template GetComponentStorage<CameraComponent>();
         const float magnitude = std::min(speed * kShakeScale, kShakeMax);
-        for (std::size_t i = 0; i < shakes.mStorage.size(); ++i) {
-            if (shakes.mValid[i]) {
-                shakes.mStorage[i].frameLimit = kShakeFrames;
-                shakes.mStorage[i].offset = direction * magnitude;
+        for (std::size_t i = 0; i < cameras.mStorage.size(); ++i) {
+            if (cameras.mValid[i]) {
+                em.AddComponent(cameras.mOwner[i],
+                                CameraShakeComponent{kShakeFrames, direction * magnitude});
             }
         }
     }
