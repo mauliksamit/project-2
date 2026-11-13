@@ -89,9 +89,9 @@ private:
     };
 
     static constexpr float kShakeMinSpeed = 4.0f;   // slower hits don't shake the camera
-    static constexpr float kShakeScale = 0.6f;      // shake px per px/frame of impact
-    static constexpr float kShakeMax = 10.0f;
-    static constexpr int kShakeFrames = 10;
+    static constexpr float kShakeScale = 0.25f;     // shake px per px/frame of impact
+    static constexpr float kShakeMax = 4.0f;
+    static constexpr int kShakeFrames = 6;
     static constexpr float kLandSoundMinSpeed = 2.0f;
     static constexpr float kStopSpeed = 0.5f;       // bounces slower than this just stop
 

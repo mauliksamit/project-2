@@ -83,15 +83,18 @@ public:
 private:
     // stretches the sprite to fill windowRect
     void DrawSprite(sf::RenderWindow& window, sf::Sprite& sprite, const Rect& windowRect) {
-        sf::IntRect textureRect = sprite.getTextureRect();
-        float scaleX = windowRect.width / static_cast<float>(textureRect.size.x);
-        float scaleY = windowRect.height / static_cast<float>(textureRect.size.y);
-        sprite.setScale({scaleX, scaleY});
+        // round both edges to whole pixels, so the next tile starts exactly where this one
+        // ends and there are no thin gaps between them
+        float left = std::round(windowRect.Left());
+        float right = std::round(windowRect.Right());
+        float top = std::round(windowRect.Top());
+        float bottom = std::round(windowRect.Bottom());
 
-        // whole pixels so the tiles line up without thin gaps between them
-        float x = std::round(windowRect.topLeft.x);
-        float y = std::round(windowRect.topLeft.y);
-        sprite.setPosition({x, y});
+        sf::IntRect textureRect = sprite.getTextureRect();
+        float scaleX = (right - left) / static_cast<float>(textureRect.size.x);
+        float scaleY = (bottom - top) / static_cast<float>(textureRect.size.y);
+        sprite.setScale({scaleX, scaleY});
+        sprite.setPosition({left, top});
 
         window.draw(sprite);
     }
