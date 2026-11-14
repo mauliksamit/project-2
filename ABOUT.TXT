@@ -1,0 +1,190 @@
+CMPUT 350 Project 2 - ECS Engine + Platformer
+
+Team: Maulik Srivastava, Abdulrahman Khafagy
+
+
+BUILDING AND RUNNING
+--------------------
+cmake -S . -B build
+cmake --build build
+cd build/platformer
+./platformer
+
+Needs CMake 3.28 or newer and a C++20 compiler. On the lab machines (Linux, GCC 9.4) it
+uses the SFML bundled in extern/. On anything else the first cmake run downloads SFML,
+so it needs internet.
+
+By default the game loads assets from ../assets/ (cmake copies the assets folder into
+build/ for us). The copy happens when cmake configures, so re-run cmake if you change
+anything in assets/. If you want to run it from somewhere else use
+./platformer -path <folder>/
+
+Our tests for the entity manager and engine are in build/engine/ECSTest.
+
+
+CONTROLS
+--------
+Arrows   run (holding Down makes you fall faster)
+Z        jump, let go early for a small hop. To wall jump, hold toward the wall while
+         sliding down it and press Z
+C        dash (once a second at most)
+
+We also added some debug keys:
+F1       show the collision boxes
+F2       pause
+F3       go forward one frame while paused
+
+
+IMPLEMENTATION NOTES
+--------------------
+Entity manager
+- An entity ID is just the index into the entity vector. When an entity gets removed it
+  leaves a gap (IsValid() is false), and the next CreateEntity reuses that ID. So if you
+  save an entity's ID somewhere (like the camera follower or the score digits), don't
+  remove that entity, or the ID could end up pointing at a new one.
+- Every component type has its own ComponentStorage. We use mEntityToSlot to find an
+  entity's component without searching. When a component gets removed its slot goes on
+  mFreeList, and the next component of that type reuses it instead of growing the
+  vector. Our systems loop over one storage and skip anything that isn't mValid.
+- Removing an entity also removes all its components.
+
+How long things stay valid (this is also in the header comments)
+- Don't hold on to references from the entity manager. Adding an entity, or another
+  component of the same type, can move the vectors around. Keep the EntityID and look it
+  up again instead.
+- Never remove an entity while looping over a component storage. CollisionSystem queues
+  the stars the player collects and removes them after its loop, and SpawnSystem creates
+  new stars after its loop.
+- A sprite reference from GetSprite breaks the next time RegisterTexture is called, so
+  keep the SpriteID. Textures are stored in an unordered_map so they never move and
+  sprites always point at a good texture.
+- A sound reference from GetSound is fine as long as the sound manager is alive.
+- GetWindow gives a shared_ptr, so the window stays alive as long as someone has it.
+- The manager references you get from the engine are fine as long as the engine is alive.
+- Systems always get the managers through the engine (EngineView) and never save them.
+
+Things we changed from the given API
+- We added WindowManager::Display(). The engine calls it after running all the systems so
+  the debug boxes (F1) end up on top of the sprites. Because of this, systems never call
+  display() themselves.
+- We added Entity::IsValid() so we can skip removed entities when iterating.
+
+Engine loop
+- Every frame we process events (this updates the InputComponents), run the systems, draw
+  the debug boxes if F1 is on, and then call Display().
+- We also keep last frame's keys so InputSystem knows if a key was just pressed or just
+  let go. If the window loses focus we let go of every key, otherwise the player would
+  keep running.
+
+Systems (in the order they run)
+CollisionLate, Input, Gravity, Movement, Collision, Score, Camera, Sprite, Spawn
+
+The spec's ProcessEvents is ECSEngine::ProcessEvents(), which the engine runs before the
+systems every frame. The spec's CollisionSystemUpdate is our CollisionLateSystem.
+
+- InputSystem: speed goes up or down a little each frame instead of instantly, and you
+  get a bit less control in the air. Jumping uses last frame's collision flags. A jump
+  only starts on the frame Z gets pressed, so holding it doesn't keep jumping. If you let
+  go of Z on the way up the jump gets cut short. A wall jump only works while you're
+  falling and holding toward the wall, and it pushes you away from the wall. Both kinds
+  of jump play the jump sound. The dash goes whichever way you're holding (or moving),
+  and gravity turns off for a few frames so it stays level.
+- GravitySystem: falling is 2x faster than going up, and 5x if you hold Down. If you push
+  into a wall while falling your fall speed gets capped and the wall slide sound plays.
+  The max fall speeds are kept under the spikes' height so nothing falls through them.
+- MovementSystem: adds each entity's velocity to its location. It only loops over the
+  movement components.
+- CameraSystem: the camera's y never changes. The player can't go into the outer 10% of
+  the screen, and the camera slowly catches up until they're back in the middle 40%. The
+  shake gets added to the view and switches direction every frame. The camera is zoomed
+  out so the whole map height (14 rows) fits in the window, otherwise the spike floor at
+  the bottom would be off screen.
+- SpriteSystem: one loop puts the sprites into their layers (background, world, HUD), and
+  then each layer gets drawn. World sprites get moved by the camera, but HUD sprites (the
+  score) stay in the same spot on screen. The layer lists get reused every frame instead
+  of being made again. We round sprite edges to whole pixels so there are no gaps
+  between tiles.
+- CollisionLateSystem: saves where every moving collider was before anything moves, so
+  CollisionSystem can tell which side something came from.
+- CollisionSystem: replays each move one axis at a time (x first, then y) against the
+  tiles, so the player doesn't catch on the seam between two stacked wall tiles. Then it
+  sets the onGround / wall flags for the next frame by checking 1px around the box, so
+  they stay set while standing still or sliding down a wall. The player picks up stars,
+  and stars bounce off tiles (slowing down each time) and off each other. When two stars
+  overlap and one is up against a tile, only the other one gets pushed, so stars don't get
+  pushed into the floor. Spikes send the player back to the respawn point and stop them.
+  It also plays the landing and star sounds and starts the screen shake (only on the
+  frame you hit something, and bigger the faster you hit it).
+- ScoreSystem: sets the 3 digit entities to the right number sprites, but only when the
+  score actually changed.
+- SpawnSystem: counts each spawner down and makes a star that flies off in a random
+  direction. We create the new stars after the loop, because adding components can move
+  the storage we're looping over. The spawner makes its first star after 1 second, then
+  one every 3 seconds, 20 total.
+
+Map loading
+- sky.map (dictionary 1) tiles just get a sprite on the background layer.
+- world.map (dictionary 2) tiles get a static collision box too. 'x' tiles are spikes and
+  'S' is the star spawner. The spawner tile has no collision box so stars can fly out of
+  it.
+- Each sprite in a dictionary only gets registered once and all its tiles share it.
+- There's no star past the spike walls in the map, so main.cpp adds one between the last
+  two walls.
+- GameObjects.h has a function for making each type of entity (tile, spawner, star,
+  player, score display) so each one is only set up in one place.
+- main.cpp adds invisible walls just outside the top, left and right edges of the map.
+  Without them you could jump above the screen and skip the second spike walls, or fall
+  off the side of the map forever. The map itself isn't changed. Stars bounce off these
+  walls too.
+
+Tuning
+- Most of the constants are at the top of InputSystem.h and GravitySystem.h.
+- Tip for the first spike walls: jump at the right wall first, hold Z, and wall jump back
+  and forth between the two walls.
+
+
+TESTS
+-----
+./build/engine/ECSTest checks the EntityManager (IDs, reusing removed IDs, adding,
+replacing and removing components, slot reuse, components not leaking into a reused ID)
+and MathUtil (rect overlap, point math, MoveTowards). It prints how many checks passed
+and exits with 0 if all of them did.
+
+
+KNOWN ISSUES
+------------
+- None that we know of.
+
+
+WHO DID WHAT
+------------
+Maulik:
+- EntityManager, Entity, ComponentStorage
+- SoundManager, SpriteManager, WindowManager, SystemManager, ECSEngine (event
+  processing, debug keys)
+- InputSystem, GravitySystem, MovementSystem, CameraSystem, SpriteSystem
+- CameraComponent, CameraFollowerComponent, CameraShakeComponent, InputComponent,
+  MovementComponent, GravityComponent
+- CMakeLists.txt, engine/CMakeLists.txt
+
+Abdulrahman:
+- MathUtil
+- CollisionLateSystem, CollisionSystem, ScoreSystem, SpawnSystem
+- LocationComponent, CollisionComponent, SpawnComponent, ScoreComponent,
+  SpriteComponent, RespawnComponent
+- GameObjects, map loader, main.cpp game setup, platformer/CMakeLists.txt
+- EngineTest
+
+Both:
+- Constants.h, ABOUT.TXT
+
+
+AI USE
+------
+ABOUT.TXT
+- This file was drafted with Claude then we read
+  through it, checked it against our code and edited it.
+- Prompt: "Write an about file in simple wording that explains building instructions,
+  controls, implementation notes of the project based on project code."
+- Reflection: the draft was mostly right since it was based on our code and comments,
+  but we still had to simplify some wording, add the "things we changed from the given API" section, and add the "who did what" at the end.
