@@ -14,12 +14,15 @@ namespace ECSEngine {
 
 const float kMaxRunVelocity = 15;
 const float kDashVelocity = 50;
-const float kJumpVelocity = 18;
+const float kJumpVelocity = 20;  // ~5 tiles: climbs the first walls, dashes over the second
 const float kGroundRunAcceleration = 5;
 const float kAirRunAcceleration = 4;
 const int kDashInterval = kFramesPerSecond;  // at most one dash a second
 const int kDashGravityFrames = 8;            // no gravity for a bit so the dash stays level
-const float kWallJumpVelocity = 12;          // sideways speed when jumping off a wall
+// sideways speed when jumping off a wall, and the max air speed until you land, touch a wall
+// or dash. Low enough that wall jumps can't climb the 6 tile gap of the second spike walls
+// (you come down before reaching the other wall), but still fine for the 3 tile first walls
+const float kWallJumpVelocity = 6;
 const float kJumpCutMultiplier = 0.4f;       // letting go of z keeps this much of the jump
 
 // arrows to run, z to jump, c to dash. uses last frame's collision flags
@@ -61,6 +64,11 @@ public:
                 onRightWall = collision.onRightWall;
             }
 
+            // the wall jump speed cap ends once you land or touch a wall
+            if (onGround || onLeftWall || onRightWall) {
+                input.wallJumpCap = false;
+            }
+
             bool leftHeld = input.keydown.test(Key::Left);
             bool rightHeld = input.keydown.test(Key::Right);
             float runDirection = 0;
@@ -76,7 +84,8 @@ public:
             if (onGround) {
                 acceleration = kGroundRunAcceleration;
             }
-            velocity.x = MoveTowards(velocity.x, runDirection * kMaxRunVelocity, acceleration);
+            float maxRunVelocity = input.wallJumpCap ? kWallJumpVelocity : kMaxRunVelocity;
+            velocity.x = MoveTowards(velocity.x, runDirection * maxRunVelocity, acceleration);
 
             // jump off the ground, or off a wall you're pushing into while falling
             if (JustPressed(input, Key::Z)) {
@@ -87,10 +96,12 @@ public:
                 } else if (falling && onLeftWall && leftHeld) {
                     velocity.y = -kJumpVelocity;
                     velocity.x = kWallJumpVelocity;
+                    input.wallJumpCap = true;
                     PlayJumpSound(engine);
                 } else if (falling && onRightWall && rightHeld) {
                     velocity.y = -kJumpVelocity;
                     velocity.x = -kWallJumpVelocity;
+                    input.wallJumpCap = true;
                     PlayJumpSound(engine);
                 }
             }
@@ -115,6 +126,7 @@ public:
                 velocity.x = dashDirection * kDashVelocity;
                 velocity.y = 0;
                 input.lastDash = 0;
+                input.wallJumpCap = false;
                 if (entityManager.template HasComponent<GravityComponent>(owner)) {
                     entityManager.template GetComponent<GravityComponent>(owner).disabledTimer =
                         kDashGravityFrames;

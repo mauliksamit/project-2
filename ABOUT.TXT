@@ -86,9 +86,13 @@ systems every frame. The spec's CollisionSystemUpdate is our CollisionLateSystem
   get a bit less control in the air. Jumping uses last frame's collision flags. A jump
   only starts on the frame Z gets pressed, so holding it doesn't keep jumping. If you let
   go of Z on the way up the jump gets cut short. A wall jump only works while you're
-  falling and holding toward the wall, and it pushes you away from the wall. Both kinds
-  of jump play the jump sound. The dash goes whichever way you're holding (or moving),
-  and gravity turns off for a few frames so it stays level.
+  falling and holding toward the wall, and it pushes you away from the wall. After a wall
+  jump your air speed is capped at the wall jump speed until you land, touch a wall or
+  dash. That's what makes the second spike walls need a dash: they're 6 tiles apart, so
+  wall jumping across is too slow and you come down before reaching the other wall, while
+  the first walls are only 3 tiles apart. Both kinds of jump play the jump sound. The
+  dash goes whichever way you're holding (or moving), and gravity turns off for a few
+  frames so it stays level.
 - GravitySystem: falling is 2x faster than going up, and 5x if you hold Down. If you push
   into a wall while falling your fall speed gets capped and the wall slide sound plays.
   The max fall speeds are kept under the spikes' height so nothing falls through them.
@@ -140,7 +144,10 @@ Map loading
 Tuning
 - Most of the constants are at the top of InputSystem.h and GravitySystem.h.
 - Tip for the first spike walls: jump at the right wall first, hold Z, and wall jump back
-  and forth between the two walls.
+  and forth between the two walls. Sliding down each wall for a moment before jumping
+  helps.
+- Tip for the second spike walls: run left and jump onto the left wall, wall jump off it,
+  and dash right near the top of that jump to get over the right wall.
 
 
 TESTS
