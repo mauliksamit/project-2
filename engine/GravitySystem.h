@@ -13,7 +13,7 @@ namespace ECSEngine {
 
 // y goes down, so a positive y velocity means falling
 const float kFallMultiplier = 2;      // falling is faster than going up
-const float kFastFallMultiplier = 3;  // when holding down
+const float kFastFallMultiplier = 5;  // when holding down
 // max fall speeds, kept under the spikes' height (44) so nothing falls through them
 const float kMaxFallVelocity = 30;
 const float kMaxFastFallVelocity = 40;

@@ -94,7 +94,7 @@ EntityID CreatePlayer(EngineView<Components...>* engine, const Point2D& pos, Spr
     em.AddComponent(id, SpriteComponent{sprite, Rect(0, 0, kPlayerSize, kPlayerSize), true,
                                         kLayerWorld});
     em.AddComponent(id, CollisionComponent::Dynamic(Rect(14, 8, 36, 56)));
-    em.AddComponent(id, InputComponent(id));
+    em.AddComponent(id, InputComponent{});
     em.AddComponent(id, RespawnComponent{pos});
     return id;
 }

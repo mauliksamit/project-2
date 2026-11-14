@@ -52,7 +52,7 @@ public:
             }
             CollisionComponent& c = colliders.mStorage[i];
             if (c.staticEntity) {
-                mStatics.push_back(i);
+                mStatics.push_back({i, WorldBox(engine, colliders.mOwner[i], c)});
                 continue;
             }
             mDynamics.push_back({i, static_cast<bool>(c.onGround),
@@ -88,10 +88,16 @@ private:
         bool wasOnWall;
     };
 
+    // statics never move, so their world box only gets worked out once per frame
+    struct StaticInfo {
+        std::size_t slot;  // index into the CollisionComponent storage
+        Rect box;          // world space
+    };
+
     static constexpr float kShakeMinSpeed = 4.0f;   // slower hits don't shake the camera
-    static constexpr float kShakeScale = 0.6f;      // shake px per px/frame of impact
-    static constexpr float kShakeMax = 10.0f;
-    static constexpr int kShakeFrames = 10;
+    static constexpr float kShakeScale = 0.25f;     // shake px per px/frame of impact
+    static constexpr float kShakeMax = 4.0f;
+    static constexpr int kShakeFrames = 6;
     static constexpr float kLandSoundMinSpeed = 2.0f;
     static constexpr float kStopSpeed = 0.5f;       // bounces slower than this just stop
 
@@ -121,9 +127,9 @@ private:
 
         // x axis
         box.topLeft.x += delta.x;
-        for (std::size_t s : mStatics) {
-            const CollisionComponent& stat = colliders.mStorage[s];
-            Rect other = WorldBox(engine, colliders.mOwner[s], stat);
+        for (const StaticInfo& tile : mStatics) {
+            const CollisionComponent& stat = colliders.mStorage[tile.slot];
+            const Rect& other = tile.box;
             if (!Intersects(box, other)) {
                 continue;
             }
@@ -140,9 +146,9 @@ private:
 
         // y axis
         box.topLeft.y += delta.y;
-        for (std::size_t s : mStatics) {
-            const CollisionComponent& stat = colliders.mStorage[s];
-            Rect other = WorldBox(engine, colliders.mOwner[s], stat);
+        for (const StaticInfo& tile : mStatics) {
+            const CollisionComponent& stat = colliders.mStorage[tile.slot];
+            const Rect& other = tile.box;
             if (!Intersects(box, other)) {
                 continue;
             }
@@ -177,7 +183,7 @@ private:
             em.template GetComponent<MovementComponent>(id).velocity = velocity;
         }
 
-        SetContactFlags(engine, dyn, box);
+        SetContactFlags(dyn, box);
 
         if (!isPlayer) {
             return;
@@ -195,15 +201,13 @@ private:
 
     // Probes 1px around the resolved box so the flags stay set while resting or sliding,
     // even on frames where the entity didn't move into the surface.
-    void SetContactFlags(EngineView<Components...>* engine, CollisionComponent& dyn,
-                         const Rect& box) {
-        auto& colliders = engine->GetEntityManager().template GetComponentStorage<CollisionComponent>();
+    void SetContactFlags(CollisionComponent& dyn, const Rect& box) {
         const Rect below = box.Translated(Point2D(0.0f, 1.0f));
         const Rect above = box.Translated(Point2D(0.0f, -1.0f));
         const Rect left = box.Translated(Point2D(-1.0f, 0.0f));
         const Rect right = box.Translated(Point2D(1.0f, 0.0f));
-        for (std::size_t s : mStatics) {
-            Rect other = WorldBox(engine, colliders.mOwner[s], colliders.mStorage[s]);
+        for (const StaticInfo& tile : mStatics) {
+            const Rect& other = tile.box;
             if (Intersects(below, other)) dyn.onGround = 1;
             if (Intersects(above, other)) dyn.onCeiling = 1;
             if (Intersects(left, other)) dyn.onLeftWall = 1;
@@ -309,7 +313,7 @@ private:
         return std::find(mToRemove.begin(), mToRemove.end(), id) != mToRemove.end();
     }
 
-    std::vector<std::size_t> mStatics;
+    std::vector<StaticInfo> mStatics;
     std::vector<DynamicInfo> mDynamics;
     std::vector<EntityID> mToRemove;
 };

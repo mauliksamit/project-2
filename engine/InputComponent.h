@@ -1,22 +1,15 @@
 #pragma once
 
 #include <bitset>
-#include <unordered_map>
 
-#include "Entity.h"
-#include "MathUtil.h"
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Texture.hpp>
-#include <SFML/Window/Keyboard.hpp>
+#include "Keyboard.h"
 
 namespace ECSEngine {
 
 struct InputComponent {
-    InputComponent(EntityID whichEntity) : entity(whichEntity), lastDash(0) {}
-    EntityID entity;
-    int lastDash;
-    std::bitset<sf::Keyboard::ScancodeCount> keydown;
-    std::bitset<sf::Keyboard::ScancodeCount> lastKeydown;
+    int lastDash = 0;  // frames since the last dash
+    std::bitset<Key::ScanCount> keydown;
+    std::bitset<Key::ScanCount> lastKeydown;
 };
 
 }  // namespace ECSEngine
