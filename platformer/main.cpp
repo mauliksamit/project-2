@@ -21,6 +21,8 @@ namespace {
 constexpr unsigned int kWindowWidth = 1024;
 constexpr unsigned int kWindowHeight = 768;
 constexpr float kTile = 64.0f;
+constexpr float kMapWidth = 64 * kTile;   // world.map is 64 x 14 tiles
+constexpr float kMapHeight = 14 * kTile;
 
 const char* kTileSheet = "spritesheet-tiles-default.png";
 const char* kCharacterSheet = "spritesheet-characters-default.png";
@@ -57,6 +59,19 @@ int main(int argc, char* argv[]) {
     if (!LoadMap(engine, gResourcePath, "sky.map", starSprite) ||
         !LoadMap(engine, gResourcePath, "world.map", starSprite)) {
         return 1;
+    }
+
+    // Invisible walls on the top, left and right edges of the map so the player can't jump
+    // over the top of the walls or fall off the sides. The map itself isn't changed.
+    const ECSEngine::Rect mapBorders[] = {
+        ECSEngine::Rect(-kTile, -kTile, kMapWidth + 2 * kTile, kTile),  // top
+        ECSEngine::Rect(-kTile, -kTile, kTile, kMapHeight + kTile),     // left
+        ECSEngine::Rect(kMapWidth, -kTile, kTile, kMapHeight + kTile),  // right
+    };
+    for (const ECSEngine::Rect& border : mapBorders) {
+        ECSEngine::EntityID wall = em.CreateEntity("border");
+        em.AddComponent(wall, ECSEngine::LocationComponent{ECSEngine::Point2D(0.0f, 0.0f)});
+        em.AddComponent(wall, ECSEngine::CollisionComponent::Static(border));
     }
 
     // Place player on the first floor (row 10 of world.map), inside the first walls
